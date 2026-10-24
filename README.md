@@ -1,4 +1,7 @@
 # Platypus Browser
+<img width="1024" height="1024" alt="1b67baa5-platypusbrowser-logo" src="https://github.com/user-attachments/assets/da3a9235-acd5-4c6f-a41c-319026600ec2" />
+
+<img width="1913" height="977" alt="Screenshot 2026-10-25 002350" src="https://github.com/user-attachments/assets/f41bd35d-e86d-4389-84c8-7fc899d7abee" />
 
 Profile cards include a schema-driven **Telemetry** panel with native resets,
 encrypted Adios settings/templates, presets and JSON import/export. See
@@ -87,6 +90,7 @@ Adios SMBIOS compatibility.
 See [workspace architecture and APIs](docs/WORKSPACE_ARCHITECTURE.md).
 
 ## Cockpit UI
+<img width="1566" height="801" alt="image" src="https://github.com/user-attachments/assets/a25a2b98-d60f-429b-a324-a3dab43d68f2" />
 
 The renderer now implements the enterprise cockpit layout with the application's
 React bridge. Select a profile in the sidebar, choose Electron or QEMU q35, and
