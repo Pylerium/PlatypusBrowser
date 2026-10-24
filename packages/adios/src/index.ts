@@ -1,0 +1,12 @@
+export { HardwareProfileManager, WorkspaceContext } from "./manager.js";
+export type { ManagerOptions, MaterializedExports, ExclusiveWorkspace } from "./manager.js";
+export { MemoryKeyring } from "./crypto.js";
+export type { KeyProvider, EncryptionKey } from "./crypto.js";
+export { generateHardwareDescriptors } from "./generator.js";
+export { validateProfile, validateWorkspaceId } from "./model.js";
+export type { HardwareDescriptors, HardwareProfile, GenerationOptions } from "./model.js";
+export { exportWorkspace, createWorkspaceEnvironment } from "./exports.js";
+export type { WorkspaceExports } from "./exports.js";
+export { ProfileError } from "./errors.js";
+export { EncryptedSettingsStore } from "./settings.js";
+export type { ErrorCode } from "./errors.js";

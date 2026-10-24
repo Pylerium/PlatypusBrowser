@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PlatypusBrowser Enterprise Cockpit</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Phosphor Icons for UI Elements -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- Chart.js for Live Telemetry Graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#ecfeff',
+              500: '#06b6d4',
+              600: '#0891b2',
+              900: '#164e63',
+              glow: '#00f2ff'
+            },
+            tactical: {
+              bg: '#090d16',
+              card: '#111827',
+              border: '#1f2937',
+              accent: '#10b981',
+              warning: '#f59e0b',
+              danger: '#ef4444'
+            }
+          },
+          fontFamily: {
+            mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+            sans: ['Inter', 'ui-sans-serif', 'system-ui']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #090d16; }
+    ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #0891b2; }
+
+    /* Glowing Utilities */
+    .glow-cyan { box-shadow: 0 0 15px rgba(6, 182, 212, 0.25); }
+    .glow-emerald { box-shadow: 0 0 15px rgba(16, 185, 129, 0.25); }
+    .border-glow { border-color: rgba(6, 182, 212, 0.4); }
+
+    /* Grid Scanline Overlay */
+    .scanline {
+      background: linear-gradient(
+        to bottom,
+        rgba(255,255,255,0),
+        rgba(255,255,255,0) 50%,
+        rgba(0, 242, 255, 0.02) 50%,
+        rgba(0, 242, 255, 0.02)
+      );
+      background-size: 100% 4px;
+    }
+  </style>
+</head>
+<body class="h-full font-sans bg-tactical-bg text-slate-200 antialiased flex flex-col overflow-hidden scanline">
+
+  <!-- Top Header Navigation -->
+  <header class="h-14 border-b border-tactical-border bg-slate-900/80 backdrop-blur px-4 flex items-center justify-between z-20 shrink-0">
+    <div class="flex items-center space-x-3">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-cyan-950">
+        <i class="ph-bold ph-shield-checkered text-xl text-slate-950"></i>
+      </div>
+      <div>
+        <div class="flex items-center space-x-2">
+          <h1 class="font-mono font-bold text-slate-100 tracking-wider text-sm uppercase">PLATYPUS BROWSER</h1>
+          <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">v2.4.0-ENTERPRISE</span>
+        </div>
+        <p class="text-[11px] text-slate-400">Deterministic QA Virtualization & Telemetry Suite</p>
+      </div>
+    </div>
+
+    <!-- Active Vault & Quick Actions -->
+    <div class="flex items-center space-x-4">
+      <div class="flex items-center space-x-2 bg-slate-950 border border-tactical-border px-3 py-1.5 rounded-lg text-xs font-mono">
+        <i class="ph-fill ph-lock-key text-emerald-400"></i>
+        <span class="text-slate-400">Adios Vault:</span>
+        <span class="text-emerald-400 font-semibold">session-master.dat [LOCKED]</span>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <button onclick="toggleGlobalProxyModal()" class="px-3 py-1.5 rounded-lg text-xs font-mono bg-slate-800 hover:bg-slate-700 text-slate-200 border border-tactical-border transition flex items-center space-x-1.5">
+          <i class="ph-bold ph-globe-hemisphere-west text-cyan-400"></i>
+          <span>Proxies & Routing</span>
+        </button>
+        <button onclick="openTelemetryModal()" class="px-3 py-1.5 rounded-lg text-xs font-mono bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold transition flex items-center space-x-1.5 shadow-lg shadow-cyan-950">
+          <i class="ph-bold ph-sliders text-base"></i>
+          <span>Telemetry Controls</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Body Content Grid -->
+  <div class="flex-1 flex overflow-hidden">
+
+    <!-- Left Sidebar: Profile Selector & Quick Filters -->
+    <aside class="w-80 border-r border-tactical-border bg-slate-900/40 flex flex-col shrink-0">
+      <div class="p-3 border-b border-tactical-border flex items-center justify-between">
+        <span class="text-xs font-mono font-bold uppercase text-slate-400 tracking-wider">Workspace Profiles</span>
+        <button onclick="createNewProfile()" class="text-xs bg-slate-800 hover:bg-slate-700 text-cyan-400 px-2 py-1 rounded border border-tactical-border flex items-center space-x-1 transition">
+          <i class="ph-bold ph-plus"></i>
+          <span>New Profile</span>
+        </button>
+      </div>
+
+      <!-- Profiles List -->
+      <div class="flex-1 overflow-y-auto p-2 space-y-2" id="profileList">
+        <!-- Profile Item (Active) -->
+        <div onclick="selectProfile('p1')" id="profile-card-p1" class="p-3 rounded-lg border border-cyan-500/50 bg-slate-800/80 cursor-pointer hover:border-cyan-400 transition relative group glow-cyan">
+          <div class="flex items-start justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <h3 class="font-semibold text-sm text-slate-100">QA-Win11-Chrome-Primary</h3>
+            </div>
+            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">READY</span>
+          </div>
+          <div class="mt-2 text-xs font-mono text-slate-400 space-y-1">
+            <div class="flex justify-between"><span>Cores/Mem:</span><span class="text-slate-200">69 vCPU / 0.25GB</span></div>
+            <div class="flex justify-between"><span>Isolation:</span><span class="text-cyan-400 font-semibold">QEMU q35 MicroVM</span></div>
+            <div class="flex justify-between"><span>Proxy:</span><span class="text-slate-300">Webshare SOCKS5</span></div>
+          </div>
+          <div class="mt-3 pt-2 border-t border-slate-700/50 flex items-center justify-between text-[11px] text-slate-400">
+            <span>Cookies: 1,420 entries</span>
+            <span class="text-cyan-400 group-hover:underline">Edit Config &rarr;</span>
+          </div>
+        </div>
+
+        <!-- Profile Item 2 -->
+        <div onclick="selectProfile('p2')" id="profile-card-p2" class="p-3 rounded-lg border border-tactical-border bg-slate-900/60 cursor-pointer hover:border-slate-600 transition">
+          <div class="flex items-start justify-between">
+            <div class="flex items-center space-x-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
+              <h3 class="font-semibold text-sm text-slate-300">Dev-MacOS-Safari-Lite</h3>
+            </div>
+            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">STOPPED</span>
+          </div>
+          <div class="mt-2 text-xs font-mono text-slate-400 space-y-1">
+            <div class="flex justify-between"><span>Cores/Mem:</span><span class="text-slate-200">8 vCPU / 8.00GB</span></div>
+            <div class="flex justify-between"><span>Isolation:</span><span class="text-slate-300">Electron Local</span></div>
+            <div class="flex justify-between"><span>Proxy:</span><span class="text-slate-500">Direct (Bypass)</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Summary Footer -->
+      <div class="p-3 border-t border-tactical-border bg-slate-950 font-mono text-xs space-y-1.5">
+        <div class="flex justify-between text-slate-400">
+          <span>Active VM Threads:</span>
+          <span class="text-cyan-400 font-bold">12 / 64</span>
+        </div>
+        <div class="flex justify-between text-slate-400">
+          <span>Local Flask Inspector:</span>
+          <span class="text-emerald-400 font-bold">127.0.0.1:5000 [200 OK]</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Center Display Area: Workbench & Execution Controls -->
+    <main class="flex-1 flex flex-col overflow-hidden bg-slate-950">
+
+      <!-- Action & Execution Bar -->
+      <div class="p-4 border-b border-tactical-border bg-slate-900/30 flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+          <!-- Execution Engine Dual Switch -->
+          <div class="bg-slate-950 p-1 rounded-lg border border-tactical-border flex items-center space-x-1">
+            <button id="engine-electron" onclick="setEngineMode('electron')" class="px-3 py-1.5 rounded-md text-xs font-mono font-medium transition text-slate-400 hover:text-slate-200">
+              <i class="ph-bold ph-cpu mr-1"></i> Electron Local
+            </button>
+            <button id="engine-qemu" onclick="setEngineMode('qemu')" class="px-3 py-1.5 rounded-md text-xs font-mono font-medium transition bg-cyan-600 text-slate-950 font-bold shadow-md shadow-cyan-950">
+              <i class="ph-bold ph-virtual-machine mr-1"></i> QEMU q35 MicroVM
+            </button>
+          </div>
+
+          <!-- Execution Trigger Buttons -->
+          <button onclick="launchWorkspace()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold font-mono text-xs rounded-lg transition flex items-center space-x-2 shadow-lg shadow-emerald-950">
+            <i class="ph-bold ph-play text-base"></i>
+            <span>LAUNCH WORKSPACE</span>
+          </button>
+          <button onclick="openLocalBrowser()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-mono text-xs rounded-lg border border-tactical-border transition flex items-center space-x-1.5">
+            <i class="ph-bold ph-arrow-square-out text-cyan-400"></i>
+            <span>Open Local Browser</span>
+          </button>
+        </div>
+
+        <div class="flex items-center space-x-3 text-xs font-mono">
+          <span class="text-slate-400">Egress Rule:</span>
+          <span class="px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">Gateway SOCKS5 Proxy</span>
+        </div>
+      </div>
+
+      <!-- Main Workspace Analytics & Telemetry Feed -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-4">
+
+        <!-- Top Overview Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div class="p-4 rounded-xl border border-tactical-border bg-slate-900/50 flex flex-col justify-between">
+            <div class="flex justify-between items-start text-slate-400">
+              <span class="text-xs font-mono">REPORTED PLATFORM</span>
+              <i class="ph-bold ph-desktop text-cyan-400 text-lg"></i>
+            </div>
+            <div class="mt-2">
+              <p class="text-base font-bold font-mono text-slate-100 truncate" id="card-platform">Chrome Is Gay</p>
+              <p class="text-[11px] text-slate-400">Custom Navigator Platform</p>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-xl border border-tactical-border bg-slate-900/50 flex flex-col justify-between">
+            <div class="flex justify-between items-start text-slate-400">
+              <span class="text-xs font-mono">HARDWARE CONCURRENCY</span>
+              <i class="ph-bold ph-cpu text-emerald-400 text-lg"></i>
+            </div>
+            <div class="mt-2">
+              <p class="text-xl font-bold font-mono text-emerald-400" id="card-cores">69 vCPU Cores</p>
+              <p class="text-[11px] text-slate-400">0.25 GB Device Memory</p>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-xl border border-tactical-border bg-slate-900/50 flex flex-col justify-between">
+            <div class="flex justify-between items-start text-slate-400">
+              <span class="text-xs font-mono">CANVAS RASTER SEED</span>
+              <i class="ph-bold ph-paint-brush-broad text-amber-400 text-lg"></i>
+            </div>
+            <div class="mt-2">
+              <p class="text-xl font-bold font-mono text-amber-400" id="card-canvas">#0x0000002A</p>
+              <p class="text-[11px] text-slate-400">0.1px Axis Offset Active</p>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-xl border border-tactical-border bg-slate-900/50 flex flex-col justify-between">
+            <div class="flex justify-between items-start text-slate-400">
+              <span class="text-xs font-mono">WEBRTC ISOLATION</span>
+              <i class="ph-bold ph-shield-warning text-red-400 text-lg"></i>
+            </div>
+            <div class="mt-2">
+              <p class="text-xl font-bold font-mono text-red-400">BLOCKED</p>
+              <p class="text-[11px] text-slate-400">PeerConnections Disabled</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Telemetry Graphs and Live Server Stream Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+          <!-- Left 2 Cols: Live Telemetry Vector Charts -->
+          <div class="lg:col-span-2 p-4 rounded-xl border border-tactical-border bg-slate-900/40 flex flex-col">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-xs font-mono font-bold uppercase text-slate-300 flex items-center space-x-2">
+                <i class="ph-bold ph-pulse text-cyan-400"></i>
+                <span>Live Diagnostic Telemetry Vectors (Flask Interceptor)</span>
+              </h3>
+              <span class="text-[10px] font-mono text-slate-500">Auto-polling /api/log</span>
+            </div>
+            <div class="flex-1 h-64 relative">
+              <canvas id="telemetryChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Right 1 Col: MicroVM SMBIOS & Guest Identity Status -->
+          <div class="p-4 rounded-xl border border-tactical-border bg-slate-900/40 flex flex-col font-mono text-xs">
+            <h3 class="text-xs font-mono font-bold uppercase text-slate-300 mb-3 flex items-center space-x-2">
+              <i class="ph-bold ph-identification-card text-emerald-400"></i>
+              <span>SMBIOS & Guest VM Identity</span>
+            </h3>
+
+            <div class="flex-1 space-y-2 bg-slate-950 p-3 rounded-lg border border-slate-800/80 overflow-y-auto text-slate-300 text-[11px]">
+              <div class="flex justify-between border-b border-slate-800/50 pb-1">
+                <span class="text-slate-500">Machine Type:</span>
+                <span class="text-cyan-400">q35-pc-virt-8.1</span>
+              </div>
+              <div class="flex justify-between border-b border-slate-800/50 pb-1">
+                <span class="text-slate-500">BIOS Vendor:</span>
+                <span class="text-slate-200">SeaBIOS / Adios-v2</span>
+              </div>
+              <div class="flex justify-between border-b border-slate-800/50 pb-1">
+                <span class="text-slate-500">System UUID:</span>
+                <span class="text-slate-200 truncate w-32">e4a91b22-892f-48c9</span>
+              </div>
+              <div class="flex justify-between border-b border-slate-800/50 pb-1">
+                <span class="text-slate-500">Guest Image:</span>
+                <span class="text-emerald-400">Debian 12 / Chromium 128</span>
+              </div>
+              <div class="flex justify-between border-b border-slate-800/50 pb-1">
+                <span class="text-slate-500">Agent Channel:</span>
+                <span class="text-slate-200">VirtIO Serial (/run/hydra)</span>
+              </div>
+              <div class="flex justify-between border-b border-slate-800/50 pb-1">
+                <span class="text-slate-500">Network Egress:</span>
+                <span class="text-amber-400">Filtered Gateway Only</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Terminal: Live JSON & Telemetry POST Log Console -->
+        <div class="p-4 rounded-xl border border-tactical-border bg-slate-900/60 font-mono text-xs flex flex-col h-56">
+          <div class="flex items-center justify-between pb-2 mb-2 border-b border-tactical-border text-slate-400">
+            <span class="flex items-center space-x-2">
+              <i class="ph-bold ph-terminal-window text-emerald-400"></i>
+              <span class="font-bold text-slate-200">ultimate_comprehensive_telemetry_log.json [Real-time Stream]</span>
+            </span>
+            <button onclick="clearLogs()" class="text-[10px] bg-slate-800 hover:bg-slate-700 px-2 py-0.5 rounded text-slate-300">Clear Output</button>
+          </div>
+          <div id="terminal-output" class="flex-1 overflow-y-auto font-mono text-[11px] leading-relaxed space-y-1 text-slate-300">
+            <div><span class="text-slate-500">[2026-10-24 19:00:36,306]</span> <span class="text-emerald-400">INFO</span> - 192.168.5.241 - "GET / HTTP/1.1" 200 OK</div>
+            <div><span class="text-slate-500">[2026-10-24 19:00:36,650]</span> <span class="text-emerald-400">INFO</span> - === Comprehensive Telemetry Received from 192.168.5.241 ===</div>
+            <div><span class="text-slate-500">[2026-10-24 19:00:36,651]</span> <span class="text-cyan-400">DATA</span> - Platform: <span class="text-amber-300">Chrome Is Gay</span> | Cores: <span class="text-amber-300">69</span> | Memory: <span class="text-amber-300">0.25GB</span></div>
+            <div><span class="text-slate-500">[2026-10-24 19:00:36,651]</span> <span class="text-cyan-400">DATA</span> - WebGL Renderer: <span class="text-slate-400">None (Disabled)</span></div>
+            <div><span class="text-slate-500">[2026-10-24 19:00:36,672]</span> <span class="text-emerald-400">INFO</span> - 192.168.5.241 - "POST /api/log HTTP/1.1" 200 OK</div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Telemetry Controls Modal Panel (Direct React Equivalent) -->
+  <div id="telemetryModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden">
+    <div class="bg-slate-900 border border-tactical-border rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl glow-cyan overflow-hidden">
+      
+      <!-- Modal Header -->
+      <header class="p-4 border-b border-tactical-border bg-slate-950 flex items-center justify-between">
+        <div>
+          <p class="text-[10px] font-mono text-cyan-400 uppercase tracking-widest font-bold">WORKSPACE TELEMETRY CONFIGURATION</p>
+          <h2 class="text-base font-bold font-mono text-slate-100" id="modal-profile-title">QA-Win11-Chrome-Primary</h2>
+        </div>
+        <div class="flex items-center space-x-3">
+          <span class="text-xs font-mono text-emerald-400 bg-emerald-950/80 border border-emerald-800 px-2.5 py-1 rounded">Saved · encrypted with Adios</span>
+          <button onclick="closeTelemetryModal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-mono rounded border border-tactical-border transition">
+            Save & Close
+          </button>
+        </div>
+      </header>
+
+      <!-- Modal Body -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-4 font-mono text-xs">
+        
+        <!-- Toolbar Controls -->
+        <div class="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-950 rounded-lg border border-slate-800">
+          <div class="flex items-center space-x-2">
+            <label class="text-slate-400">Preset or Template:</label>
+            <select id="presetSelect" onchange="applyPreset(this.value)" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-slate-200">
+              <option value="">Custom Configuration</option>
+              <optgroup label="Built in">
+                <option value="desktop">QA Desktop (8 Core, 8GB)</option>
+                <option value="compact">QA Compact Device (2 Core, 2GB)</option>
+              </optgroup>
+              <optgroup label="My Encrypted Templates">
+                <option value="custom_69">Ultra-Core Simulation (69 Core, 0.25GB)</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <button onclick="resetToNative()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded border border-slate-700">Reset All to Native</button>
+            <button onclick="exportTelemetryJson()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded border border-slate-700">Export JSON</button>
+            <label class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded border border-slate-700 cursor-pointer">
+              Import JSON
+              <input type="file" accept=".json" class="hidden" onchange="importTelemetryJson(event)">
+            </label>
+          </div>
+        </div>
+
+        <!-- Telemetry Vector Category Tabs -->
+        <div class="flex space-x-1 border-b border-slate-800" role="tablist">
+          <button onclick="switchTab('hardware')" id="tab-hardware" class="px-3 py-2 text-xs font-mono font-bold text-cyan-400 border-b-2 border-cyan-400">Hardware & CPU</button>
+          <button onclick="switchTab('screen')" id="tab-screen" class="px-3 py-2 text-xs font-mono text-slate-400 hover:text-slate-200">Screen & Geometry</button>
+          <button onclick="switchTab('network')" id="tab-network" class="px-3 py-2 text-xs font-mono text-slate-400 hover:text-slate-200">Network & WebRTC</button>
+          <button onclick="switchTab('canvas')" id="tab-canvas" class="px-3 py-2 text-xs font-mono text-slate-400 hover:text-slate-200">Canvas & Audio Seeding</button>
+        </div>
+
+        <!-- Category 1: Hardware & CPU Tab Content -->
+        <div id="tab-content-hardware" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          <!-- CPU Threads Slider -->
+          <div class="p-3 bg-slate-950 rounded-lg border border-slate-800 space-y-2">
+            <div class="flex justify-between items-center">
+              <label class="font-bold text-slate-200">CPU Threads (hardwareConcurrency)</label>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">CUSTOM</span>
+            </div>
+            <div class="flex items-center space-x-3">
+              <input type="range" id="input-cores" min="1" max="256" value="69" oninput="updateCoreDisplay(this.value)" class="flex-1 accent-cyan-500">
+              <span id="display-cores" class="font-bold text-cyan-400 w-12 text-right">69</span>
+            </div>
+            <p class="text-[10px] text-slate-500">Simulates reported threads via navigator.hardwareConcurrency</p>
+          </div>
+
+          <!-- Memory Select -->
+          <div class="p-3 bg-slate-950 rounded-lg border border-slate-800 space-y-2">
+            <div class="flex justify-between items-center">
+              <label class="font-bold text-slate-200">Reported Memory (deviceMemory GB)</label>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">CUSTOM</span>
+            </div>
+            <select id="input-memory" onchange="updateMemoryDisplay(this.value)" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-slate-200">
+              <option value="0.25" selected>0.25 GB</option>
+              <option value="0.5">0.5 GB</option>
+              <option value="1">1.0 GB</option>
+              <option value="2">2.0 GB</option>
+              <option value="4">4.0 GB</option>
+              <option value="8">8.0 GB</option>
+            </select>
+            <p class="text-[10px] text-slate-500">Simulates navigator.deviceMemory API limits</p>
+          </div>
+
+          <!-- Platform String -->
+          <div class="p-3 bg-slate-950 rounded-lg border border-slate-800 space-y-2 md:col-span-2">
+            <div class="flex justify-between items-center">
+              <label class="font-bold text-slate-200">Navigator Platform String</label>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800">CUSTOM</span>
+            </div>
+            <input type="text" id="input-platform" value="Chrome Is Gay" oninput="updatePlatformDisplay(this.value)" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200">
+            <p class="text-[10px] text-slate-500">Injected descriptor overriding navigator.platform</p>
+          </div>
+
+        </div>
+
+        <!-- Category 4: Canvas Tab Content (Hidden by default) -->
+        <div id="tab-content-canvas" class="hidden space-y-4">
+          <div class="p-3 bg-slate-950 rounded-lg border border-slate-800 space-y-2">
+            <div class="flex justify-between items-center">
+              <label class="font-bold text-slate-200">2D Canvas Seed Offset (32-bit Unsigned)</label>
+              <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-950 text-amber-400 border border-amber-800">ACTIVE</span>
+            </div>
+            <input type="number" id="input-canvas-seed" value="42" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-200">
+            <p class="text-[10px] text-slate-500">Applies repeatable max 0.1px offsets to fillText and strokeText rasterization.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <footer class="p-4 border-t border-tactical-border bg-slate-950 flex items-center justify-between">
+        <p class="text-[11px] text-slate-500 font-mono">Changes sync automatically to Adios session storage.</p>
+        <button onclick="applyToWorkspace()" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold font-mono text-xs rounded transition flex items-center space-x-1.5 shadow-lg shadow-cyan-950">
+          <i class="ph-bold ph-arrows-clockwise"></i>
+          <span>Apply to Workspace Instance</span>
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Global Proxy & Hydration Manager Modal -->
+  <div id="proxyModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center hidden">
+    <div class="bg-slate-900 border border-tactical-border rounded-xl w-full max-w-2xl p-4 font-mono text-xs space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-slate-100 flex items-center space-x-2">
+          <i class="ph-bold ph-globe-hemisphere-west text-cyan-400 text-base"></i>
+          <span>Webshare Proxy & Session State Hydrator</span>
+        </h3>
+        <button onclick="toggleGlobalProxyModal()" class="text-slate-400 hover:text-slate-200">&times;</button>
+      </div>
+
+      <!-- Bulk Proxy File Ingestion -->
+      <div class="p-3 bg-slate-950 rounded-lg border border-slate-800 space-y-2">
+        <label class="font-bold text-slate-200">Import Webshare Proxy List (host:port:user:pass)</label>
+        <textarea id="proxyListInput" rows="3" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-slate-200 text-[11px]" placeholder="p.webshare.io:8080:user123:pass123"></textarea>
+        <button onclick="parseProxyList()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-400 rounded border border-slate-700">Import Proxy List</button>
+      </div>
+
+      <!-- Proxy Bypass Rules -->
+      <div class="p-3 bg-slate-950 rounded-lg border border-slate-800 space-y-2">
+        <label class="font-bold text-slate-200">Local Network Proxy Bypass Rules</label>
+        <input type="text" value="127.0.0.1, localhost, *.local" class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-slate-300" readonly>
+        <p class="text-[10px] text-slate-500">Ensures diagnostic Flask servers bypass external SOCKS5 tunnels directly.</p>
+      </div>
+
+      <!-- Cookie State Import -->
+      <div class="p-3 bg-slate-950 rounded-lg border border-slate-800 space-y-2">
+        <label class="font-bold text-slate-200">Import Cookie Profile (Netscape / JSON Format)</label>
+        <input type="file" accept=".json,.txt" class="block w-full text-[11px] text-slate-400 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-cyan-400 hover:file:bg-slate-700">
+      </div>
+
+      <div class="flex justify-end">
+        <button onclick="toggleGlobalProxyModal()" class="px-4 py-1.5 bg-cyan-600 text-slate-950 font-bold rounded">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Application Logic -->
+  <script>
+    // State Variables
+    let activeEngine = 'qemu';
+    let telemetryChart = null;
+
+    // Initialize Page & Chart
+    window.onload = function() {
+      initTelemetryChart();
+      startTelemetryFeedSimulation();
+    };
+
+    // Engine Mode Toggle Switch
+    function setEngineMode(mode) {
+      activeEngine = mode;
+      const btnElectron = document.getElementById('engine-electron');
+      const btnQemu = document.getElementById('engine-qemu');
+
+      if (mode === 'qemu') {
+        btnQemu.className = "px-3 py-1.5 rounded-md text-xs font-mono font-medium transition bg-cyan-600 text-slate-950 font-bold shadow-md shadow-cyan-950";
+        btnElectron.className = "px-3 py-1.5 rounded-md text-xs font-mono font-medium transition text-slate-400 hover:text-slate-200";
+        logTerminal("INFO", "Switched execution engine to Hardware-Accelerated QEMU q35 MicroVM");
+      } else {
+        btnElectron.className = "px-3 py-1.5 rounded-md text-xs font-mono font-medium transition bg-cyan-600 text-slate-950 font-bold shadow-md shadow-cyan-950";
+        btnQemu.className = "px-3 py-1.5 rounded-md text-xs font-mono font-medium transition text-slate-400 hover:text-slate-200";
+        logTerminal("INFO", "Switched execution engine to Fast Local Electron Session");
+      }
+    }
+
+    // Modal Control Handlers
+    function openTelemetryModal() {
+      document.getElementById('telemetryModal').classList.remove('hidden');
+    }
+    function closeTelemetryModal() {
+      document.getElementById('telemetryModal').classList.add('hidden');
+    }
+    function toggleGlobalProxyModal() {
+      const modal = document.getElementById('proxyModal');
+      modal.classList.toggle('hidden');
+    }
+
+    // Tab Switching inside Telemetry Panel
+    function switchTab(tabName) {
+      const tabs = ['hardware', 'screen', 'network', 'canvas'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`tab-${t}`);
+        const content = document.getElementById(`tab-content-${t}`);
+        if (t === tabName) {
+          if (btn) btn.className = "px-3 py-2 text-xs font-mono font-bold text-cyan-400 border-b-2 border-cyan-400";
+          if (content) content.classList.remove('hidden');
+        } else {
+          if (btn) btn.className = "px-3 py-2 text-xs font-mono text-slate-400 hover:text-slate-200";
+          if (content) content.classList.add('hidden');
+        }
+      });
+    }
+
+    // Dynamic Display Updaters
+    function updateCoreDisplay(val) {
+      document.getElementById('display-cores').innerText = val;
+      document.getElementById('card-cores').innerText = `${val} vCPU Cores`;
+    }
+    function updateMemoryDisplay(val) {
+      document.getElementById('card-cores').innerText = `${document.getElementById('input-cores').value} vCPU / ${val}GB`;
+    }
+    function updatePlatformDisplay(val) {
+      document.getElementById('card-platform').innerText = val || "Native";
+    }
+
+    // Preset Applicator
+    function applyPreset(presetKey) {
+      if (presetKey === 'desktop') {
+        document.getElementById('input-cores').value = 8;
+        updateCoreDisplay(8);
+        document.getElementById('input-platform').value = "Linux x86_64";
+        updatePlatformDisplay("Linux x86_64");
+      } else if (presetKey === 'custom_69') {
+        document.getElementById('input-cores').value = 69;
+        updateCoreDisplay(69);
+        document.getElementById('input-platform').value = "Chrome Is Gay";
+        updatePlatformDisplay("Chrome Is Gay");
+      }
+    }
+
+    // Terminal Logging Simulator
+    function logTerminal(level, message) {
+      const term = document.getElementById('terminal-output');
+      const time = new Date().toISOString().replace('T', ' ').substring(0, 19);
+      const color = level === 'INFO' ? 'text-emerald-400' : level === 'DATA' ? 'text-cyan-400' : 'text-amber-400';
+      
+      const line = document.createElement('div');
+      line.innerHTML = `<span class="text-slate-500">[${time}]</span> <span class="${color}">${level}</span> - ${message}`;
+      term.appendChild(line);
+      term.scrollTop = term.scrollHeight;
+    }
+
+    function clearLogs() {
+      document.getElementById('terminal-output').innerHTML = '';
+    }
+
+    // Launch Workspace Operations
+    function launchWorkspace() {
+      logTerminal("INFO", `Launching workspace via ${activeEngine.toUpperCase()} engine...`);
+      logTerminal("DATA", `Applying session hydration: 1,420 cookies loaded from Adios vault`);
+      setTimeout(() => {
+        logTerminal("INFO", "POST /api/log HTTP/1.1 200 OK - Telemetry handshake verified");
+      }, 800);
+    }
+
+    function openLocalBrowser() {
+      logTerminal("INFO", "Opening local Electron window with preload hooks...");
+    }
+
+    function applyToWorkspace() {
+      closeTelemetryModal();
+      logTerminal("INFO", "Telemetry config saved to Adios vault. Restarting workspace instance...");
+    }
+
+    function exportTelemetryJson() {
+      const data = {
+        format: "platypus-telemetry",
+        version: 1,
+        runtime: {
+          hardwareConcurrency: parseInt(document.getElementById('input-cores').value),
+          platform: document.getElementById('input-platform').value,
+          canvasSeed: 42
+        }
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'platypus-telemetry.json';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importTelemetryJson(e) {
+      const file = e.target.files[0];
+      if (file) {
+        logTerminal("INFO", `Imported telemetry template: ${file.name}`);
+      }
+    }
+
+    function parseProxyList() {
+      logTerminal("INFO", "Parsed 10 Webshare proxies. OS-encrypted profiles generated.");
+      toggleGlobalProxyModal();
+    }
+
+    // Chart.js Telemetry Graph Real-time Generator
+    function initTelemetryChart() {
+      const ctx = document.getElementById('telemetryChart').getContext('2d');
+      telemetryChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['0s', '2s', '4s', '6s', '8s', '10s'],
+          datasets: [
+            {
+              label: 'Reported vCPU Vectors',
+              data: [69, 69, 69, 69, 69, 69],
+              borderColor: '#06b6d4',
+              backgroundColor: 'rgba(6, 182, 212, 0.1)',
+              fill: true,
+              tension: 0.3
+            },
+            {
+              label: 'Raster Seed Offset (x100)',
+              data: [42, 42, 42, 42, 42, 42],
+              borderColor: '#f59e0b',
+              borderDash: [4, 4],
+              tension: 0.1
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: '#94a3b8', font: { family: 'JetBrains Mono', size: 10 } } } },
+          scales: {
+            x: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } },
+            y: { ticks: { color: '#64748b' }, grid: { color: '#1e293b' } }
+          }
+        }
+      });
+    }
+
+    function startTelemetryFeedSimulation() {
+      setInterval(() => {
+        if (telemetryChart) {
+          const now = new Date().toLocaleTimeString().split(' ')[0];
+          telemetryChart.data.labels.shift();
+          telemetryChart.data.labels.push(now);
+          telemetryChart.data.datasets[0].data.shift();
+          telemetryChart.data.datasets[0].data.push(parseInt(document.getElementById('input-cores').value));
+          telemetryChart.update('none');
+        }
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

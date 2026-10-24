@@ -1,0 +1,13 @@
+{
+  "machine": "q35",
+  "qemuPath": "C:/Program Files/qemu/qemu-system-x86_64.exe",
+  "qemuImgPath": "C:/Program Files/qemu/qemu-img.exe",
+  "baseImages": [{ "path": "C:/VMImages/workspace-base.raw", "format": "raw" }],
+  "accelerator": "whpx",
+  "cpus": 2,
+  "memoryMiB": 2048,
+  "display": "gtk",
+  "network": "restricted",
+  "bootTimeoutMs": 30000,
+  "shutdownTimeoutMs": 15000
+}

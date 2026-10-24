@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.node.json",
+  "compilerOptions": { "composite": false },
+  "include": ["tests/qemu/**/*.ts", "scripts/**/*.ts", "src/main/assets.d.ts", "src/main/qemu/**/*.ts", "src/shared/**/*.ts"]
+}

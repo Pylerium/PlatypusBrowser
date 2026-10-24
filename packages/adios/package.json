@@ -1,0 +1,17 @@
+{
+  "name": "@adios/hwid-profile-manager",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Workspace-scoped virtual hardware descriptors and encrypted persistence",
+  "type": "module",
+  "engines": { "node": ">=22.0.0" },
+  "exports": { ".": { "types": "./dist/src/index.d.ts", "import": "./dist/src/index.js" } },
+  "files": ["dist/src", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test dist/tests/*.test.js",
+    "check": "npm run typecheck && npm test"
+  },
+  "devDependencies": { "@types/node": "^22.0.0", "typescript": "^5.8.3" }
+}

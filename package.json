@@ -1,0 +1,51 @@
+{
+  "name": "platypus-browser",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A local desktop manager for isolated browser profiles.",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "guest:setup": "tsx scripts/setup-guest.ts",
+    "guest:build": "tsx scripts/build-guest.ts",
+    "guest:verify": "tsx scripts/verify-guest.ts",
+    "test:guest": "python -m unittest discover -s guest/tests",
+    "test:proxy-guest": "tsx scripts/verify-proxy-guest.ts",
+    "test:proxy-electron": "npm run build && node tests/workspace-proxy.cjs",
+    "check": "npm run typecheck && npm run build && npm run test:qemu && node tests/runtime.cjs && node tests/workspace-ipc.cjs",
+    "predev": "npm --prefix packages/adios run build",
+    "test:qemu-real": "tsx tests/qemu/real-smoke.ts",
+    "test:qemu-electron": "npm run build && node tests/workspace-qemu.cjs",
+    "prebuild": "npm --prefix packages/adios run build",
+    "pretypecheck": "npm --prefix packages/adios run build",
+    "pretest:qemu": "npm --prefix packages/adios run build",
+    "typecheck:qemu-tests": "tsc --noEmit -p tsconfig.qemu-tests.json",
+    "test:workspace-ipc": "npm run build && node tests/workspace-ipc.cjs",
+    "test:qemu": "tsx --test tests/qemu/*.test.ts",
+    "test:runtime": "npm run build && node tests/runtime.cjs",
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json && tsc --noEmit -p tsconfig.qemu-tests.json"
+  },
+  "dependencies": {
+    "@adios/hwid-profile-manager": "file:./packages/adios",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.30",
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.5.2",
+    "electron": "^45.0.0",
+    "electron-vite": "^3.1.0",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.15",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5"
+  },
+  "workspaces": [
+    "packages/adios"
+  ]
+}
