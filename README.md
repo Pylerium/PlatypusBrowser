@@ -1,7 +1,7 @@
 # Platypus Browser
-<img width="1024" height="1024" alt="1b67baa5-platypusbrowser-logo" src="https://github.com/user-attachments/assets/da3a9235-acd5-4c6f-a41c-319026600ec2" />
+<img width="1024" height="1024" alt="1b67baa5-platypusbrowser-logo" src="images/platypusbrowser-logo.png" />
 
-<img width="1913" height="977" alt="Screenshot 2026-10-25 002350" src="https://github.com/user-attachments/assets/f41bd35d-e86d-4389-84c8-7fc899d7abee" />
+<img width="1913" height="977" alt="Screenshot 2026-10-25 002350" src="images/preview1.png" />
 
 Profile cards include a schema-driven **Telemetry** panel with native resets,
 encrypted Adios settings/templates, presets and JSON import/export. See
